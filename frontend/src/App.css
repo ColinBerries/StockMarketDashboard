@@ -44,6 +44,7 @@ section h2 {
     width: 100%;
     height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
@@ -51,10 +52,22 @@ section h2 {
 .left {
     display: flex;
     flex-direction: column;
-    height: dvh;
+    height: 100dvh;
     width: 100%;
     align-items: center;
     justify-content: center;
+}
+
+.signalDashboard {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.signalError {
+    width: 100%;
+    font-size: 0.8rem;
+    color: #9d0208;
 }
 
 .right {

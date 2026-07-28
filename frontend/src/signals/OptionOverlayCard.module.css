@@ -1,0 +1,15 @@
+.card {
+  min-width: 12rem;
+}
+
+.state {
+  display: inline-block;
+  border: 1px solid #90a4ae;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.65rem;
+  background: #f5f9fb;
+  color: #263238;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}

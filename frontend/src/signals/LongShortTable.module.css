@@ -1,0 +1,23 @@
+.card {
+  min-width: 15rem;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  padding: 0.35rem 0.75rem;
+  border-bottom: 1px solid #d7e3ea;
+}
+
+.table th:first-child {
+  color: #1b7f3a;
+}
+
+.table th:last-child {
+  color: #b42318;
+}

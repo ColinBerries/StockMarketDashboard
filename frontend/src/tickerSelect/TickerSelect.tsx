@@ -2,10 +2,13 @@ import { useState } from "react";
 import { TickerZodObject, tickerZodObject } from "./tickersZodObject";
 import { SelectTickerList } from "./TickerList";
 import "./TickerSelect.css";
+import { HurstVeto } from "../lib/api";
 
 export const TickerSelect = ({
   setActiveTicker,
+  hurstVeto,
 }: {
+  hurstVeto: Record<string, HurstVeto>;
   setActiveTicker: React.Dispatch<
     React.SetStateAction<{
       name: string;
@@ -35,7 +38,11 @@ export const TickerSelect = ({
           <input onInput={searchTickerList}></input>
         </div>
       </div>
-      <SelectTickerList tickerList={tickerList} setTicker={setActiveTicker} />
+      <SelectTickerList
+        tickerList={tickerList}
+        setTicker={setActiveTicker}
+        hurstVeto={hurstVeto}
+      />
     </div>
   );
 };

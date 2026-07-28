@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-POLYGON_TOKEN = os.environ.get('POLYGON_TOKEN')
+_polygon_token = os.environ.get('POLYGON_TOKEN')
 
-def POLYGON_TOKEN():
-    return POLYGON_TOKEN
+def load_token():
+    return _polygon_token

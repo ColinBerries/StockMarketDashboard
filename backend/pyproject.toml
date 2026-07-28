@@ -1,10 +1,10 @@
 
 [project]
-name = "summer-25-project"
+name = "stock-market-dashboard"
 version = "2020.0.0"
 dependencies = [
     "pytz",
-    "dotenv",
+    "python-dotenv",
     "polygon-api-client",
     "matplotlib",
     "flask-restful",
@@ -12,8 +12,12 @@ dependencies = [
     "flask_cors",
     "pandas",
     "requests",
+    "yfinance",
+    "nltk",
+    "vaderSentiment",
+    "scikit-learn",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Anshika Singh" },
     { name = "Colin Berry" },
@@ -22,3 +26,7 @@ authors = [
 
 [tool.setuptools]
 package-dir = { "" = "." }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["TechnicalAnalysis*", "Signals*"]

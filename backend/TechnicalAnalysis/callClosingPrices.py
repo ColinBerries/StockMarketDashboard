@@ -1,23 +1,31 @@
-import os
 import datetime as dt
+import re
 from functools import lru_cache
-from . import loadToken
+from pathlib import Path
+
 import pandas as pd
 from polygon import RESTClient
 
-
-# ---------- configuration ---------- #
-_DEFAULT_SYMBOL   = "AAPL"          # change or pass explicitly
-_PERIOD_DAYS      = 730             # rolling window length
-_CACHE_FILE       = "price_data.pkl"  # local on-disk cache
-_API_KEY_ENV_NAME = loadToken.load_token()
-# ----------------------------------- #
+from . import loadToken
 
 
-def _download_polygon(symbol: str,
-                      start_date: dt.date,
-                      end_date: dt.date,
-                      api_key: str) -> pd.DataFrame:
+_DEFAULT_SYMBOL = "AAPL"
+_PERIOD_DAYS = 730
+_API_KEY_ENV_NAME = "POLYGON_TOKEN"
+_CACHE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _cache_file(symbol: str) -> Path:
+    safe_symbol = re.sub(r"[^A-Z0-9._-]", "_", symbol.upper())
+    return _CACHE_DIR / f"price_data_{safe_symbol}.pkl"
+
+
+def _download_polygon(
+    symbol: str,
+    start_date: dt.date,
+    end_date: dt.date,
+    api_key: str,
+) -> pd.DataFrame:
     """Download raw daily aggregate bars from Polygon.io."""
     client = RESTClient(api_key)
     aggs = client.get_aggs(
@@ -26,9 +34,8 @@ def _download_polygon(symbol: str,
         timespan="day",
         from_=start_date,
         to=end_date,
-        adjusted=True
+        adjusted=True,
     )
-
 
     if not aggs:
         raise ValueError(
@@ -36,60 +43,74 @@ def _download_polygon(symbol: str,
             f"between {start_date} and {end_date}."
         )
 
-    # RESTClient returns Aggregate objects – convert to dicts first
-    df = pd.DataFrame(
-        {
-            "open":  [a.open   for a in aggs],
-            "high":  [a.high   for a in aggs],
-            "low":   [a.low    for a in aggs],
-            "close": [a.close  for a in aggs],
-            "volume":[a.volume for a in aggs],
-            "vwap":  [a.vwap   for a in aggs],
-            "ts":    [pd.to_datetime(a.timestamp, unit="ms") for a in aggs],
-        }
-    ).set_index("ts").sort_index()
+    return (
+        pd.DataFrame(
+            {
+                "open": [aggregate.open for aggregate in aggs],
+                "high": [aggregate.high for aggregate in aggs],
+                "low": [aggregate.low for aggregate in aggs],
+                "close": [aggregate.close for aggregate in aggs],
+                "volume": [aggregate.volume for aggregate in aggs],
+                "vwap": [aggregate.vwap for aggregate in aggs],
+                "ts": [
+                    pd.to_datetime(aggregate.timestamp, unit="ms")
+                    for aggregate in aggs
+                ],
+            }
+        )
+        .set_index("ts")
+        .sort_index()
+    )
 
-    return df
+
+def _read_cache(cache_file: Path, symbol: str) -> pd.DataFrame | None:
+    if not cache_file.is_file():
+        return None
+    try:
+        cached = pd.read_pickle(cache_file)
+    except (OSError, ValueError, EOFError):
+        return None
+    if cached.empty or "close" not in cached:
+        return None
+    cached_symbol = cached.attrs.get("symbol")
+    if cached_symbol and cached_symbol != symbol:
+        return None
+    return cached.sort_index()
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=32)
 def get_price_data(symbol: str = _DEFAULT_SYMBOL) -> pd.DataFrame:
     """
-    Return a DataFrame with the last `_PERIOD_DAYS` of daily data.
+    Return roughly two years of daily Polygon bars for ``symbol``.
 
-    • Reads from disk if a fresh cache exists.
-    • Otherwise → pulls from Polygon, saves to disk, and returns.
+    Each ticker has its own on-disk cache. A recent cache is used directly;
+    if it is stale and no Polygon token is available, the stale cache is used
+    as an offline fallback rather than making package imports fail.
     """
-    # Include today by making the upper bound exclusive
-    end_date   = dt.date.today() + dt.timedelta(days=1)
+    symbol = symbol.upper().strip()
+    if not symbol:
+        raise ValueError("Ticker symbol cannot be empty")
+
+    end_date = dt.date.today() + dt.timedelta(days=1)
     start_date = end_date - dt.timedelta(days=_PERIOD_DAYS)
-
-    # 1) Try cache ----------------------------------------------------------
-    if os.path.isfile(_CACHE_FILE):
-        df_cached = pd.read_pickle(_CACHE_FILE)
-        if (
-            not df_cached.empty
-            and df_cached.index.min().date() <= start_date
-            and df_cached.index.max().date() >= end_date - dt.timedelta(days=1)
-        ):
-            return df_cached.copy()
-
-    # 2) Download fresh data ------------------------------------------------
+    cache_file = _cache_file(symbol)
+    cached = _read_cache(cache_file, symbol)
     api_key = loadToken.load_token()
+
+    if cached is not None:
+        has_history = cached.index.min().date() <= start_date
+        is_recent = cached.index.max().date() >= dt.date.today() - dt.timedelta(days=7)
+        if has_history and is_recent:
+            return cached.copy()
+        if not api_key:
+            return cached.copy()
+
     if not api_key:
         raise EnvironmentError(
-            f"Set your Polygon API key in the { _API_KEY_ENV_NAME } environment variable."
+            f"Set your Polygon API key in the {_API_KEY_ENV_NAME} environment variable."
         )
 
-    df = _download_polygon(symbol, start_date, end_date, api_key)
-
-    # Persist for future imports
-    df.to_pickle(_CACHE_FILE)
-
-    return df
-
-
-# ------------------------------------------------------------
-# Expose an immediately usable DataFrame when the module loads
-# ------------------------------------------------------------
-price_data: pd.DataFrame = get_price_data()     # noqa: E305
+    frame = _download_polygon(symbol, start_date, end_date, api_key)
+    frame.attrs["symbol"] = symbol
+    frame.to_pickle(cache_file)
+    return frame.copy()

@@ -1,0 +1,22 @@
+.card {
+  min-width: 12rem;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.long {
+  background: #d8f3dc;
+  color: #1b4332;
+}
+
+.flat {
+  background: #ffe5d9;
+  color: #9d0208;
+}

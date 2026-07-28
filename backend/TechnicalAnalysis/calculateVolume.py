@@ -4,7 +4,7 @@ from polygon import RESTClient
 from polygon.rest.models import Agg
 from datetime import datetime, timedelta
 import pytz  # pip install pytz
-from loadToken import load_token
+from .loadToken import load_token
 
 
 def calculate_ema(
