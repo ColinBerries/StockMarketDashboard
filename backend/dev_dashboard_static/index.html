@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Backend Dev Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --border: #262a33;
+      --text: #e6e8ec;
+      --text-dim: #9aa1ad;
+      --accent: #4f8cff;
+      --green: #3ecf8e;
+      --red: #e5534b;
+      --amber: #e0a72e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    header .sub {
+      margin-right: auto;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    input[type="text"] {
+      width: 120px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button {
+      padding: 9px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.secondary {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+    }
+
+    main { padding: 24px 28px; }
+
+    #status {
+      min-height: 1.2rem;
+      margin-bottom: 14px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      min-width: 160px;
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .badge .label,
+    .leg-card .label {
+      color: var(--text-dim);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge .value {
+      margin-top: 2px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      color: var(--text-dim);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .card canvas { max-height: 220px; }
+
+    .error-text {
+      margin-top: 5px;
+      color: var(--red);
+      font-size: 12px;
+    }
+
+    .empty-text {
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    section.portfolio { margin-top: 28px; }
+
+    section.portfolio h2 {
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+
+    .legs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .leg-card {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .leg-card .value {
+      margin-top: 4px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .pill {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .pill.long,
+    .pill.trend_follow {
+      background: rgba(62, 207, 142, 0.15);
+      color: var(--green);
+    }
+
+    .pill.short,
+    .pill.reduce {
+      background: rgba(229, 83, 75, 0.15);
+      color: var(--red);
+    }
+
+    .pill.neutral {
+      background: rgba(224, 167, 46, 0.15);
+      color: var(--amber);
+    }
+
+    @media (max-width: 520px) {
+      header, main { padding: 18px; }
+      .grid { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Backend Dev Dashboard</h1>
+    <span class="sub">
+      Reads directly from TechnicalAnalysis, Signals, and Sentiment
+    </span>
+    <input
+      type="text"
+      id="tickerInput"
+      value="AAPL"
+      placeholder="TICKER"
+      aria-label="Ticker"
+    >
+    <button id="loadBtn">Load</button>
+    <button id="portfolioBtn" class="secondary">Load portfolio legs</button>
+  </header>
+
+  <main>
+    <div id="status" aria-live="polite"></div>
+    <div class="badges" id="badges"></div>
+    <div class="grid" id="grid"></div>
+
+    <section class="portfolio" id="portfolioSection" hidden>
+      <h2>Portfolio legs (universe-wide)</h2>
+      <div class="legs-grid" id="legsGrid"></div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script>
+    const charts = {};
+
+    function setStatus(text, isError = false) {
+      const element = document.getElementById("status");
+      element.textContent = text;
+      element.style.color = isError ? "var(--red)" : "var(--text-dim)";
+    }
+
+    function makeCard(grid, id, title) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const heading = document.createElement("h2");
+      heading.textContent = title;
+      card.appendChild(heading);
+
+      const canvas = document.createElement("canvas");
+      canvas.id = id;
+      card.appendChild(canvas);
+
+      const error = document.createElement("div");
+      error.className = "error-text";
+      error.id = `${id}-err`;
+      card.appendChild(error);
+
+      grid.appendChild(card);
+    }
+
+    function lineChart(canvasId, labels, series, colors) {
+      if (charts[canvasId]) {
+        charts[canvasId].destroy();
+      }
+      charts[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: "line",
+        data: {
+          labels,
+          datasets: series.map((item, index) => ({
+            label: item.label,
+            data: item.data,
+            borderColor: colors[index],
+            backgroundColor: "transparent",
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.15,
+          })),
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: series.length > 1,
+              labels: { color: "#9aa1ad", boxWidth: 12 },
+            },
+          },
+          scales: {
+            x: { display: false },
+            y: {
+              ticks: { color: "#9aa1ad" },
+              grid: { color: "#262a33" },
+            },
+          },
+        },
+      });
+    }
+
+    function barChart(canvasId, labels, data, color) {
+      if (charts[canvasId]) {
+        charts[canvasId].destroy();
+      }
+      charts[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ data, backgroundColor: color, borderWidth: 0 }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              ticks: { color: "#9aa1ad" },
+              grid: { color: "#262a33" },
+            },
+          },
+        },
+      });
+    }
+
+    function badge(container, label, value, errorMessage) {
+      const element = document.createElement("div");
+      element.className = "badge";
+
+      const labelElement = document.createElement("div");
+      labelElement.className = "label";
+      labelElement.textContent = label;
+      element.appendChild(labelElement);
+
+      const valueElement = document.createElement("div");
+      valueElement.className = "value";
+      valueElement.textContent = value;
+      element.appendChild(valueElement);
+
+      if (errorMessage) {
+        const errorElement = document.createElement("div");
+        errorElement.className = "error-text";
+        errorElement.textContent = errorMessage;
+        element.appendChild(errorElement);
+      }
+      container.appendChild(element);
+    }
+
+    function formatNumber(value, digits = 3) {
+      if (value === null || value === undefined || Number.isNaN(value)) {
+        return "—";
+      }
+      return Number(value).toFixed(digits);
+    }
+
+    async function loadTicker() {
+      const input = document.getElementById("tickerInput");
+      const ticker = input.value.trim().toUpperCase();
+      if (!ticker) {
+        return;
+      }
+
+      setStatus(`Loading ${ticker}...`);
+      const badges = document.getElementById("badges");
+      const grid = document.getElementById("grid");
+      badges.replaceChildren();
+      grid.replaceChildren();
+
+      let data;
+      try {
+        const response = await fetch(
+          `/api/dashboard/${encodeURIComponent(ticker)}`,
+        );
+        data = await response.json();
+        if (!response.ok) {
+          setStatus(`Error: ${data.error || response.statusText}`, true);
+          return;
+        }
+      } catch (error) {
+        setStatus(`Request failed: ${error}`, true);
+        return;
+      }
+
+      const errors = data.errors || {};
+      const failedCount = Object.keys(errors).length;
+      setStatus(
+        `Loaded ${data.ticker} — ${data.dates.length} trading days` +
+        (failedCount
+          ? ` (${failedCount} section(s) failed; details shown inline)`
+          : ""),
+      );
+
+      badge(
+        badges,
+        "Sentiment",
+        data.sentiment == null ? "—" : formatNumber(data.sentiment, 2),
+        errors.sentiment,
+      );
+      badge(
+        badges,
+        "Tail risk (λ = 1 / α)",
+        data.tailRisk == null ? "—" : formatNumber(data.tailRisk, 2),
+        errors.tailRisk,
+      );
+      const hurstValue = data.hurst ? data.hurst.value : null;
+      const hurstRegime = data.hurst ? data.hurst.regime : "—";
+      badge(
+        badges,
+        "Hurst (32d)",
+        hurstValue == null
+          ? "—"
+          : `${formatNumber(hurstValue, 2)} · ${hurstRegime}`,
+        errors.hurst,
+      );
+
+      if (typeof Chart === "undefined") {
+        setStatus(
+          "Indicator data loaded, but Chart.js could not be loaded.",
+          true,
+        );
+        return;
+      }
+
+      makeCard(grid, "priceChart", "Close price + EMA 20 / 50");
+      const emaSeries = [{ label: "Close", data: data.closes }];
+      if (data.ema20) {
+        emaSeries.push({
+          label: "EMA 20",
+          data: Array(data.closes.length - data.ema20.length)
+            .fill(null)
+            .concat(data.ema20),
+        });
+      }
+      if (data.ema50) {
+        emaSeries.push({
+          label: "EMA 50",
+          data: Array(data.closes.length - data.ema50.length)
+            .fill(null)
+            .concat(data.ema50),
+        });
+      }
+      lineChart(
+        "priceChart",
+        data.dates,
+        emaSeries,
+        ["#e6e8ec", "#4f8cff", "#e0a72e"],
+      );
+      if (errors.ema20 || errors.ema50) {
+        document.getElementById("priceChart-err").textContent =
+          errors.ema20 || errors.ema50;
+      }
+
+      makeCard(grid, "rsiChart", "RSI (14)");
+      if (data.rsi) {
+        lineChart(
+          "rsiChart",
+          data.dates,
+          [{ label: "RSI", data: data.rsi }],
+          ["#4f8cff"],
+        );
+      } else {
+        document.getElementById("rsiChart-err").textContent =
+          errors.rsi || "No data";
+      }
+
+      makeCard(grid, "macdChart", "MACD (12, 26, 9)");
+      if (data.macd) {
+        lineChart(
+          "macdChart",
+          data.dates,
+          [
+            { label: "MACD", data: data.macd.macd },
+            { label: "Signal", data: data.macd.signal },
+            { label: "Histogram", data: data.macd.histogram },
+          ],
+          ["#4f8cff", "#e0a72e", "#3ecf8e"],
+        );
+      } else {
+        document.getElementById("macdChart-err").textContent =
+          errors.macd || "No data";
+      }
+
+      makeCard(grid, "obvChart", "On-Balance Volume");
+      if (data.obv) {
+        lineChart(
+          "obvChart",
+          data.dates,
+          [{ label: "OBV", data: data.obv }],
+          ["#3ecf8e"],
+        );
+      } else {
+        document.getElementById("obvChart-err").textContent =
+          errors.obv || "No data";
+      }
+
+      makeCard(grid, "adChart", "Accumulation / Distribution");
+      if (data.ad) {
+        lineChart(
+          "adChart",
+          data.dates,
+          [{ label: "A/D", data: data.ad }],
+          ["#e0a72e"],
+        );
+      } else {
+        document.getElementById("adChart-err").textContent =
+          errors.ad || "No data";
+      }
+
+      makeCard(grid, "volumeChart", "Volume");
+      if (data.volume) {
+        barChart(
+          "volumeChart",
+          data.dates,
+          data.volume,
+          "#4f8cff88",
+        );
+      } else {
+        document.getElementById("volumeChart-err").textContent =
+          errors.volume || "No data";
+      }
+    }
+
+    function createLegCard(container, label, value) {
+      const card = document.createElement("div");
+      card.className = "leg-card";
+
+      const labelElement = document.createElement("div");
+      labelElement.className = "label";
+      labelElement.textContent = label;
+      card.appendChild(labelElement);
+
+      const valueElement = document.createElement("div");
+      valueElement.className = "value";
+      if (typeof value === "string") {
+        valueElement.textContent = value;
+      } else {
+        valueElement.appendChild(value);
+      }
+      card.appendChild(valueElement);
+      container.appendChild(card);
+    }
+
+    function appendPill(container, text, className) {
+      const pill = document.createElement("span");
+      pill.className = `pill ${className}`;
+      pill.textContent = text;
+      container.appendChild(pill);
+    }
+
+    async function loadPortfolio() {
+      const section = document.getElementById("portfolioSection");
+      const grid = document.getElementById("legsGrid");
+      section.hidden = false;
+      grid.innerHTML = '<div class="empty-text">Loading...</div>';
+
+      let data;
+      try {
+        const response = await fetch("/api/portfolio");
+        data = await response.json();
+        if (!response.ok) {
+          grid.textContent = data.error || response.statusText;
+          grid.className = "legs-grid error-text";
+          return;
+        }
+      } catch (error) {
+        grid.textContent = `Request failed: ${error}`;
+        grid.className = "legs-grid error-text";
+        return;
+      }
+
+      grid.className = "legs-grid";
+      grid.replaceChildren();
+      createLegCard(grid, "Market timing", data.market_timing);
+      createLegCard(grid, "Option overlay", data.option_overlay);
+
+      const book = document.createElement("div");
+      (data.long_short_book.long || []).forEach((ticker) => {
+        appendPill(book, `Long ${ticker}`, "long");
+      });
+      (data.long_short_book.short || []).forEach((ticker) => {
+        appendPill(book, `Short ${ticker}`, "short");
+      });
+      if (!book.childNodes.length) {
+        book.textContent = "—";
+      }
+      createLegCard(grid, "Long / short book", book);
+
+      const vetoes = document.createElement("div");
+      Object.entries(data.hurst_veto || {}).forEach(([ticker, state]) => {
+        appendPill(vetoes, `${ticker}: ${state}`, state);
+      });
+      if (!vetoes.childNodes.length) {
+        vetoes.textContent = "—";
+      }
+      createLegCard(grid, "Hurst veto", vetoes);
+    }
+
+    document
+      .getElementById("loadBtn")
+      .addEventListener("click", loadTicker);
+    document
+      .getElementById("portfolioBtn")
+      .addEventListener("click", loadPortfolio);
+    document
+      .getElementById("tickerInput")
+      .addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          loadTicker();
+        }
+      });
+
+    loadTicker();
+  </script>
+</body>
+</html>

@@ -13,7 +13,8 @@ Final product
       - Possibly hedge our positions
 
 # Running the project
-Create a `.env` file in the `Technical Analysis` file based on the `.env.example`
+Create `backend/.env` based on
+`backend/TechnicalAnalysis/.env.example`.
 
 ## Backend
 Install the necessary modules with the following command:
@@ -37,6 +38,31 @@ cd ./frontend
 npm start
 ```
 The frontend will start on port 3000
+
+## Backend diagnostic dashboard
+
+The standalone diagnostic dashboard loads EMA, RSI, MACD, OBV,
+Accumulation/Distribution, volume, sentiment, tail risk, Hurst, and the
+composed portfolio legs directly from the backend modules. It runs separately
+from the React application and production API.
+
+Create `backend/.env` with `POLYGON_TOKEN`. Add `NEWS_API_KEY` to enable the
+sentiment badge; without it, only that badge reports an error.
+
+From the repository root:
+
+```bash
+bash run_dev_dashboard.sh
+```
+
+On PowerShell, the equivalent direct command is:
+
+```powershell
+Set-Location backend
+python dev_dashboard.py
+```
+
+Open [http://localhost:5050](http://localhost:5050).
 
 
 
