@@ -35,14 +35,16 @@ _sentiment_spec.loader.exec_module(sentiment_module)
 _DASHBOARD_HISTORY_POINTS = 180  # trailing days of history returned per series
 
 DEFAULT_UNIVERSE = (
-    'AAPL',
-    'MSFT',
-    'NVDA',
-    'AMZN',
-    'GOOGL',
-    'META',
-    'TSLA',
-    'JPM',
+    # Tech
+    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'META', 'AMZN', 'TSLA', 'AMD', 'NFLX', 'CRM',
+    # Financials
+    'JPM', 'BAC', 'GS', 'V', 'MA',
+    # Healthcare
+    'UNH', 'JNJ', 'PFE', 'LLY',
+    # Consumer
+    'WMT', 'COST', 'HD', 'DIS', 'KO', 'PEP', 'MCD',
+    # Energy / industrials
+    'XOM', 'CVX', 'CAT', 'BA',
 )
 
 
@@ -221,12 +223,25 @@ class PortfolioLegs(Resource):
                 'SPY'
             )['close'].tolist()
             universe = _configured_universe()
-            ticker_closes = {
-                ticker: callClosingPrices.get_price_data(
-                    ticker
-                )['close'].tolist()
-                for ticker in universe
-            }
+
+            ticker_closes = {}
+            failed_tickers: dict[str, str] = {}
+            for ticker in universe:
+                try:
+                    ticker_closes[ticker] = callClosingPrices.get_price_data(
+                        ticker
+                    )['close'].tolist()
+                except Exception as error:
+                    # Skip this ticker rather than failing the whole
+                    # portfolio view -- one rate-limited or delisted
+                    # ticker shouldn't blank out every other signal.
+                    failed_tickers[ticker] = str(error)
+
+            if not ticker_closes:
+                raise ValueError(
+                    'Unable to fetch price data for any ticker in the '
+                    'configured universe.'
+                )
 
             lambda_percentile = _market_tail_percentile(index_closes)
             firm_ranks = tail_risk.firm_tail_risk(ticker_closes)
@@ -247,7 +262,11 @@ class PortfolioLegs(Resource):
         except Exception as error:
             return {'error': str(error)}, 502
 
-        return asdict(state)
+        payload = asdict(state)
+        payload['universe'] = universe
+        if failed_tickers:
+            payload['universeErrors'] = failed_tickers
+        return payload
 
 
 def _safe_section(compute, results: dict, errors: dict, key: str) -> None:

@@ -6,6 +6,7 @@ import { fetchPortfolioLegs, isPortfolioLegs, PortfolioLegs } from "./lib/api";
 import { MarketTimingCard } from "./signals/MarketTimingCard";
 import { LongShortTable } from "./signals/LongShortTable";
 import { OptionOverlayCard } from "./signals/OptionOverlayCard";
+import { UniverseList } from "./signals/UniverseList";
 import { useTickerDashboard } from "./hooks/useTickerDashboard";
 import { ChartCard } from "./charts/ChartCard";
 import { IndicatorChart } from "./charts/IndicatorChart";
@@ -102,6 +103,11 @@ function App() {
                 <MarketTimingCard state={portfolioLegs.market_timing} />
                 <LongShortTable book={portfolioLegs.long_short_book} />
                 <OptionOverlayCard state={portfolioLegs.option_overlay} />
+                <UniverseList
+                  universe={portfolioLegs.universe}
+                  book={portfolioLegs.long_short_book}
+                  universeErrors={portfolioLegs.universeErrors}
+                />
               </div>
             )}
             {portfolioError && <p className="signalError">Portfolio signals are unavailable.</p>}

@@ -1,5 +1,6 @@
 import datetime as dt
 import re
+import time
 from functools import lru_cache
 from pathlib import Path
 
@@ -14,10 +15,22 @@ _PERIOD_DAYS = 730
 _API_KEY_ENV_NAME = "POLYGON_TOKEN"
 _CACHE_DIR = Path(__file__).resolve().parent.parent
 
+# Polygon's free tier caps out at 5 requests/minute. Fetching an uncached
+# universe of tickers (e.g. for the portfolio-legs view) can burst well past
+# that, so a rate-limited request is retried with exponential backoff rather
+# than failing immediately.
+_RATE_LIMIT_MAX_RETRIES = 4
+_RATE_LIMIT_BASE_DELAY_SECONDS = 15.0
+
 
 def _cache_file(symbol: str) -> Path:
     safe_symbol = re.sub(r"[^A-Z0-9._-]", "_", symbol.upper())
     return _CACHE_DIR / f"price_data_{safe_symbol}.pkl"
+
+
+def _is_rate_limit_error(error: Exception) -> bool:
+    message = str(error)
+    return "429" in message or "too many" in message.lower()
 
 
 def _download_polygon(
@@ -26,16 +39,36 @@ def _download_polygon(
     end_date: dt.date,
     api_key: str,
 ) -> pd.DataFrame:
-    """Download raw daily aggregate bars from Polygon.io."""
+    """Download raw daily aggregate bars from Polygon.io, retrying on 429s."""
     client = RESTClient(api_key)
-    aggs = client.get_aggs(
-        ticker=symbol,
-        multiplier=1,
-        timespan="day",
-        from_=start_date,
-        to=end_date,
-        adjusted=True,
-    )
+
+    attempt = 0
+    while True:
+        try:
+            aggs = client.get_aggs(
+                ticker=symbol,
+                multiplier=1,
+                timespan="day",
+                from_=start_date,
+                to=end_date,
+                adjusted=True,
+            )
+            break
+        except Exception as error:
+            attempt += 1
+            rate_limited = _is_rate_limit_error(error)
+            if not rate_limited or attempt > _RATE_LIMIT_MAX_RETRIES:
+                if rate_limited:
+                    raise RuntimeError(
+                        f"Polygon rate limit exceeded for {symbol} after "
+                        f"{attempt - 1} retries. Your API plan may be too "
+                        "restrictive for the number of tickers being "
+                        "fetched at once -- see https://polygon.io/pricing "
+                        "for higher-throughput tiers."
+                    ) from error
+                raise
+            delay = _RATE_LIMIT_BASE_DELAY_SECONDS * (2 ** (attempt - 1))
+            time.sleep(delay)
 
     if not aggs:
         raise ValueError(

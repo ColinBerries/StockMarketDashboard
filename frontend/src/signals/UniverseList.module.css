@@ -1,0 +1,49 @@
+.card {
+  min-width: 100%;
+  flex: 1 1 100%;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  cursor: default;
+}
+
+.long {
+  color: var(--positive);
+  border-color: color-mix(in srgb, var(--positive) 40%, var(--border));
+  background: rgba(79, 178, 134, 0.1);
+}
+
+.short {
+  color: var(--negative);
+  border-color: color-mix(in srgb, var(--negative) 40%, var(--border));
+  background: rgba(209, 88, 79, 0.1);
+}
+
+.neutral {
+  color: var(--text-dim);
+}
+
+.failed {
+  color: var(--text-dim);
+  border-style: dashed;
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.note {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin: 0.6rem 0 0;
+}

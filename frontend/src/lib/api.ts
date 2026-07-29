@@ -12,6 +12,8 @@ export interface PortfolioLegs {
   };
   option_overlay: OptionOverlay;
   hurst_veto: Record<string, HurstVeto>;
+  universe: string[];
+  universeErrors?: Record<string, string>;
 }
 
 export interface ApiError {
