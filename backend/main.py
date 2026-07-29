@@ -7,7 +7,7 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
-from Signals import canslim, hurst, portfolio, tail_risk, vrp
+from Signals import canslim, hurst, monte_carlo, portfolio, tail_risk, vrp
 from TechnicalAnalysis import (
     calculateAD,
     calculateEma,
@@ -476,6 +476,65 @@ class CanslimTicker(Resource):
         return result
 
 
+class MonteCarloSimulation(Resource):
+    """
+    Projects a portfolio's range of outcomes over a multi-year horizon
+    via Monte Carlo simulation, seeded with real historical SPY return
+    statistics rather than hardcoded assumptions. See
+    Signals/monte_carlo.py for the full explanation of the two return
+    models (gaussian vs. fat-tailed "stable").
+    """
+
+    def get(self):
+        try:
+            initial_value = request.args.get(
+                'initial', default=10000.0, type=float
+            )
+            years = request.args.get('years', default=10, type=int)
+            risk_profile = request.args.get(
+                'riskProfile', default=None, type=str
+            )
+            stock_weight = request.args.get(
+                'stockWeight', default=None, type=float
+            )
+            risk_free_rate = request.args.get(
+                'riskFreeRate', default=0.03, type=float
+            )
+            distribution = request.args.get(
+                'distribution', default='gaussian', type=str
+            )
+            n_iterations = request.args.get(
+                'iterations', default=500, type=int
+            )
+            target_value = request.args.get(
+                'target', default=None, type=float
+            )
+            seed = request.args.get('seed', default=None, type=int)
+
+            spy_closes = callClosingPrices.get_price_data(
+                'SPY'
+            )['close'].tolist()
+
+            result = monte_carlo.run_simulation(
+                initial_value=initial_value,
+                years=years,
+                spy_closes=spy_closes,
+                risk_profile=risk_profile,
+                stock_weight=stock_weight,
+                risk_free_rate=risk_free_rate,
+                distribution=distribution,
+                n_iterations=n_iterations,
+                target_value=target_value,
+                random_seed=seed,
+            )
+        except ValueError as error:
+            return {'error': str(error)}, 400
+        except Exception as error:
+            return {'error': str(error)}, 502
+
+        return result
+
+
 api.add_resource(HelloWorld, '/tickers/<string:ticker>')
 api.add_resource(EMA, '/ema/<string:ema>')
 api.add_resource(TailRisk, '/signals/tail-risk/<string:ticker>')
@@ -484,6 +543,7 @@ api.add_resource(PortfolioLegs, '/portfolio/legs')
 api.add_resource(TickerDashboard, '/dashboard/<string:ticker>')
 api.add_resource(CanslimScreen, '/canslim/screen')
 api.add_resource(CanslimTicker, '/canslim/<string:ticker>')
+api.add_resource(MonteCarloSimulation, '/montecarlo/simulate')
 
 if __name__ == '__main__':
     app.run(

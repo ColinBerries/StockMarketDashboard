@@ -16,6 +16,8 @@ dependencies = [
     "nltk",
     "vaderSentiment",
     "scikit-learn",
+    "scipy",
+    "numpy",
 ]
 requires-python = ">=3.10"
 authors = [

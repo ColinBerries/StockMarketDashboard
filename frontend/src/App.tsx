@@ -23,6 +23,7 @@ import { VolumeChart } from "./charts/VolumeChart";
 import { StatBadge, BadgeTone } from "./components/StatBadge";
 import { CanslimScreenerTable } from "./canslim/CanslimScreenerTable";
 import { CanslimTickerCard } from "./canslim/CanslimTickerCard";
+import { MonteCarloSimulator } from "./montecarlo/MonteCarloSimulator";
 import { tickers } from "./tickers";
 import { alignRight, formatNumber } from "./lib/format";
 
@@ -156,6 +157,10 @@ function App() {
               </div>
             )}
             {portfolioError && <p className="signalError">Portfolio signals are unavailable.</p>}
+
+            <div className="chartGrid chartGridWide">
+              <MonteCarloSimulator />
+            </div>
 
             {canslimResults && (
               <CanslimScreenerTable
