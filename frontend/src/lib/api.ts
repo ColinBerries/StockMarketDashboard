@@ -47,6 +47,14 @@ export interface HurstResult {
   regime: "persistent" | "mean_reverting" | "random_walk" | "insufficient_data";
 }
 
+export interface CombinedSentiment {
+  combined: number | null;
+  news: number | null;
+  social: number | null;
+  newsError: string | null;
+  socialError: string | null;
+}
+
 export interface TickerDashboard {
   ticker: string;
   dates: string[];
@@ -58,7 +66,8 @@ export interface TickerDashboard {
   obv: number[] | null;
   ad: number[] | null;
   volume: number[] | null;
-  sentiment: number | null;
+  sentiment: CombinedSentiment | null;
+  crowdSentiment: number | null;
   tailRisk: number | null;
   hurst: HurstResult | null;
   errors?: Record<string, string>;

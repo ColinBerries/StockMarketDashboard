@@ -85,9 +85,18 @@ function App() {
         ? "negative"
         : "neutral";
 
-  const sentimentValue = dashboard?.sentiment ?? null;
+  const sentimentValue = dashboard?.sentiment?.combined ?? null;
   const sentimentTone: BadgeTone =
     sentimentValue === null ? "neutral" : sentimentValue > 0.05 ? "positive" : sentimentValue < -0.05 ? "negative" : "neutral";
+  const sentimentDetail =
+    dashboard?.sentiment && (dashboard.sentiment.news !== null || dashboard.sentiment.social !== null)
+      ? `news ${formatNumber(dashboard.sentiment.news, 2)} · social ${formatNumber(dashboard.sentiment.social, 2)}`
+      : undefined;
+
+  const crowdValue = dashboard?.crowdSentiment ?? null;
+  const crowdTone: BadgeTone =
+    crowdValue === null ? "neutral" : crowdValue > 0.55 ? "positive" : crowdValue < 0.45 ? "negative" : "neutral";
+  const crowdDetail = crowdValue === null ? undefined : `${Math.round(crowdValue * 100)}% bullish (StockTwits)`;
 
   const tailRiskValue = dashboard?.tailRisk ?? null;
   const tailRiskTone: BadgeTone = tailRiskValue !== null && tailRiskValue < 2 ? "negative" : "neutral";
@@ -135,17 +144,16 @@ function App() {
                   <StatBadge
                     label="Sentiment"
                     value={formatNumber(sentimentValue, 2)}
-                    detail={
-                      sentimentValue === null
-                        ? undefined
-                        : sentimentValue > 0
-                          ? "net positive news"
-                          : sentimentValue < 0
-                            ? "net negative news"
-                            : "neutral news"
-                    }
+                    detail={sentimentDetail}
                     tone={sentimentTone}
                     error={dashboard.errors?.sentiment}
+                  />
+                  <StatBadge
+                    label="Crowd (StockTwits)"
+                    value={crowdValue === null ? "—" : `${Math.round(crowdValue * 100)}%`}
+                    detail={crowdDetail}
+                    tone={crowdTone}
+                    error={dashboard.errors?.crowdSentiment}
                   />
                   <StatBadge
                     label="Tail risk (alpha)"

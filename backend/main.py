@@ -283,8 +283,9 @@ class TickerDashboard(Resource):
     Combined read-out for a single ticker: price history, EMA 20/50, RSI,
     MACD, OBV, Accumulation/Distribution, volume, sentiment, and tail risk,
     in one response so the frontend can render a full dashboard from a
-    single request. Each section fails independently -- a missing
-    NEWS_API_KEY, for example, only blanks out the sentiment field.
+    single request. Each section fails independently -- e.g. a missing
+    NEWS_API_KEY degrades the sentiment score to social-only rather than
+    blanking it, and only blanks it if both sentiment sources fail.
     """
 
     def get(self, ticker: str):
@@ -343,8 +344,12 @@ class TickerDashboard(Resource):
         )
         _safe_section(lambda: volumes[-n:], results, errors, 'volume')
         _safe_section(
-            lambda: sentiment_module.average_sentiment(symbol),
+            lambda: sentiment_module.combined_sentiment(symbol),
             results, errors, 'sentiment',
+        )
+        _safe_section(
+            lambda: sentiment_module.bull_bear_ratio(symbol),
+            results, errors, 'crowdSentiment',
         )
         _safe_section(
             lambda: tail_risk.firm_tail_risk({symbol: closes}, 20).get(symbol),
