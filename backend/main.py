@@ -1,16 +1,38 @@
+import importlib.util
 import os
 from dataclasses import asdict
+from pathlib import Path
 
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
 from Signals import hurst, portfolio, tail_risk, vrp
-from TechnicalAnalysis import callClosingPrices, calculateEma
+from TechnicalAnalysis import (
+    calculateAD,
+    calculateEma,
+    calculateMACD,
+    calculateOBV,
+    calculateRSI,
+    callClosingPrices,
+)
 
 app = Flask(__name__)
 api = Api(app)
 CORS(app)
+
+# "Sentiment Analysis" has a space in its directory name, which makes it an
+# invalid Python package identifier -- load sentiment.py directly by file
+# path instead of via a normal import statement.
+_BACKEND_DIR = Path(__file__).resolve().parent
+_sentiment_path = _BACKEND_DIR / "Sentiment Analysis" / "sentiment.py"
+_sentiment_spec = importlib.util.spec_from_file_location(
+    "sentiment_module", _sentiment_path
+)
+sentiment_module = importlib.util.module_from_spec(_sentiment_spec)
+_sentiment_spec.loader.exec_module(sentiment_module)
+
+_DASHBOARD_HISTORY_POINTS = 180  # trailing days of history returned per series
 
 DEFAULT_UNIVERSE = (
     'AAPL',
@@ -228,11 +250,104 @@ class PortfolioLegs(Resource):
         return asdict(state)
 
 
+def _safe_section(compute, results: dict, errors: dict, key: str) -> None:
+    """Run one indicator calc; record its own error without failing the rest."""
+    try:
+        results[key] = compute()
+    except Exception as error:  # noqa: BLE001 - intentionally broad, per-section
+        results[key] = None
+        errors[key] = str(error)
+
+
+class TickerDashboard(Resource):
+    """
+    Combined read-out for a single ticker: price history, EMA 20/50, RSI,
+    MACD, OBV, Accumulation/Distribution, volume, sentiment, and tail risk,
+    in one response so the frontend can render a full dashboard from a
+    single request. Each section fails independently -- a missing
+    NEWS_API_KEY, for example, only blanks out the sentiment field.
+    """
+
+    def get(self, ticker: str):
+        symbol = ticker.upper().strip()
+        if not symbol:
+            return {'error': 'ticker cannot be empty'}, 400
+
+        try:
+            price_df = callClosingPrices.get_price_data(symbol)
+        except Exception as error:
+            return {'ticker': symbol, 'error': str(error)}, 502
+
+        closes = price_df['close'].tolist()
+        highs = price_df['high'].tolist()
+        lows = price_df['low'].tolist()
+        volumes = price_df['volume'].tolist()
+        dates = [str(ts.date()) for ts in price_df.index]
+
+        n = _DASHBOARD_HISTORY_POINTS
+        results: dict = {
+            'ticker': symbol,
+            'dates': dates[-n:],
+            'closes': closes[-n:],
+        }
+        errors: dict = {}
+
+        _safe_section(
+            lambda: calculateEma.get_ema_list(closes, 20)[-n:],
+            results, errors, 'ema20',
+        )
+        _safe_section(
+            lambda: calculateEma.get_ema_list(closes, 50)[-n:],
+            results, errors, 'ema50',
+        )
+        _safe_section(
+            lambda: calculateRSI.calculate_rsi(closes, 14)[-n:],
+            results, errors, 'rsi',
+        )
+
+        def _macd():
+            macd_df = calculateMACD.calculate_macd(price_df)
+            return {
+                'macd': macd_df['MACD'].tolist()[-n:],
+                'signal': macd_df['Signal'].tolist()[-n:],
+                'histogram': macd_df['Histogram'].tolist()[-n:],
+            }
+        _safe_section(_macd, results, errors, 'macd')
+
+        _safe_section(
+            lambda: calculateOBV.compute_obv(closes, volumes)[-n:],
+            results, errors, 'obv',
+        )
+        _safe_section(
+            lambda: calculateAD.calculate_ad(closes, highs, lows, volumes)[-n:],
+            results, errors, 'ad',
+        )
+        _safe_section(lambda: volumes[-n:], results, errors, 'volume')
+        _safe_section(
+            lambda: sentiment_module.average_sentiment(symbol),
+            results, errors, 'sentiment',
+        )
+        _safe_section(
+            lambda: tail_risk.firm_tail_risk({symbol: closes}, 20).get(symbol),
+            results, errors, 'tailRisk',
+        )
+
+        def _hurst_section():
+            value = _latest_hurst(closes)
+            return {'value': value, 'regime': hurst.hurst_regime(value)}
+        _safe_section(_hurst_section, results, errors, 'hurst')
+
+        if errors:
+            results['errors'] = errors
+        return results
+
+
 api.add_resource(HelloWorld, '/tickers/<string:ticker>')
 api.add_resource(EMA, '/ema/<string:ema>')
 api.add_resource(TailRisk, '/signals/tail-risk/<string:ticker>')
 api.add_resource(HurstSignal, '/signals/hurst/<string:ticker>')
 api.add_resource(PortfolioLegs, '/portfolio/legs')
+api.add_resource(TickerDashboard, '/dashboard/<string:ticker>')
 
 if __name__ == '__main__':
     app.run(

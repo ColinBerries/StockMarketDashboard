@@ -33,3 +33,56 @@ export const fetchPortfolioLegs = async (): Promise<
 export const isPortfolioLegs = (
   response: PortfolioLegs | ApiError,
 ): response is PortfolioLegs => "market_timing" in response;
+
+export interface MacdSeries {
+  macd: number[];
+  signal: number[];
+  histogram: number[];
+}
+
+export interface HurstResult {
+  value: number | null;
+  regime: "persistent" | "mean_reverting" | "random_walk" | "insufficient_data";
+}
+
+export interface TickerDashboard {
+  ticker: string;
+  dates: string[];
+  closes: number[];
+  ema20: number[] | null;
+  ema50: number[] | null;
+  rsi: (number | null)[] | null;
+  macd: MacdSeries | null;
+  obv: number[] | null;
+  ad: number[] | null;
+  volume: number[] | null;
+  sentiment: number | null;
+  tailRisk: number | null;
+  hurst: HurstResult | null;
+  errors?: Record<string, string>;
+}
+
+export interface DashboardError {
+  error: string;
+}
+
+export const fetchTickerDashboard = async (
+  ticker: string,
+  signal?: AbortSignal,
+): Promise<TickerDashboard | DashboardError> => {
+  const response = await fetch(
+    `${configs.BACKEND}/dashboard/${encodeURIComponent(ticker)}`,
+    { signal },
+  );
+  const body = await response.json();
+
+  if (response.status !== 200) {
+    return { error: body?.error ?? "Yikers" };
+  }
+
+  return body as TickerDashboard;
+};
+
+export const isTickerDashboard = (
+  response: TickerDashboard | DashboardError,
+): response is TickerDashboard => "dates" in response;

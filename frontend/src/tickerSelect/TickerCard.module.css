@@ -1,45 +1,40 @@
 .tickerCard {
-    overflow-x: hidden;
-    text-wrap-mode: nowrap;
-    text-align: left;
-    font-size: 0.8rem;
-    padding: 0.25rem;
-    display: flex;
-    flex-direction: row;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: start;
+  overflow-x: hidden;
+  text-wrap-mode: nowrap;
+  text-align: left;
+  padding: 0.6rem 1rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: start;
 }
 
 .tickerCardImage {
-    height: 1.5rem;
-    width: 1.5rem;
-    aspect-ratio: 1/1;
+  height: 1.75rem;
+  width: 1.75rem;
+  aspect-ratio: 1/1;
+  flex-shrink: 0;
 }
 
 .tickerCardImage > img {
-    height: 100%;
-    aspect-ratio: 1/1;
-    background: black;
-    border-radius: 10rem;
-}
-
-.tickerSelectHeaderInner {
-    z-index: 10;
-}
-
-.tickerCard > .tickerName {
-    font-size: 0.7rem;
-    opacity: 0.75;
+  height: 100%;
+  aspect-ratio: 1/1;
+  background: var(--ink);
+  border-radius: 10rem;
+  border: 1px solid var(--border);
 }
 
 .tickerCardSymbol {
-    font-weight: 400;
-    font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text);
 }
 
 .tickerCardName {
-    font-weight: 300;
-    opacity: 0.75;
-    font-size: 0.7rem;
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--text-dim);
+  font-size: 0.72rem;
 }

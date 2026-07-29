@@ -4,12 +4,13 @@
 
 .state {
   display: inline-block;
-  border: 1px solid #90a4ae;
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  padding: 0.35rem 0.65rem;
-  background: #f5f9fb;
-  color: #263238;
+  padding: 0.35rem 0.75rem;
+  background: var(--panel-raised);
+  color: var(--text);
+  font-family: var(--font-mono);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
   text-transform: capitalize;
 }

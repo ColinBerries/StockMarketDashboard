@@ -1,23 +1,30 @@
 .card {
-  min-width: 15rem;
+  min-width: 16rem;
+  flex: 1;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
 }
 
 .table th,
 .table td {
   padding: 0.35rem 0.75rem;
-  border-bottom: 1px solid #d7e3ea;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
 }
 
 .table th:first-child {
-  color: #1b7f3a;
+  color: var(--positive);
 }
 
 .table th:last-child {
-  color: #b42318;
+  color: var(--negative);
+}
+
+.table td {
+  color: var(--text);
 }

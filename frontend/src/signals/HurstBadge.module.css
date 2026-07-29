@@ -1,24 +1,25 @@
 .badge {
   display: inline-block;
-  margin-top: 0.2rem;
+  margin-top: 0.3rem;
   border-radius: 999px;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.55rem;
-  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
   text-transform: capitalize;
 }
 
 .trend_follow {
-  background: #d8f3dc;
-  color: #1b4332;
+  background: rgba(79, 178, 134, 0.18);
+  color: var(--positive);
 }
 
 .reduce {
-  background: #ffe5d9;
-  color: #9d0208;
+  background: rgba(209, 88, 79, 0.18);
+  color: var(--negative);
 }
 
 .neutral {
-  background: #eceff1;
-  color: #455a64;
+  background: rgba(217, 164, 65, 0.18);
+  color: var(--accent);
 }

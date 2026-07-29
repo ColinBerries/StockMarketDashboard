@@ -1,0 +1,58 @@
+.badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
+  text-align: left;
+  min-width: 160px;
+  flex: 1;
+}
+
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.positive {
+  background: var(--positive);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--positive) 60%, transparent);
+}
+
+.negative {
+  background: var(--negative);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--negative) 60%, transparent);
+}
+
+.neutral {
+  background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  margin-bottom: 0.2rem;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.15rem;
+}
