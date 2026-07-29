@@ -63,3 +63,19 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+.tickerListLoadQuery {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--accent);
+  padding: 0.7rem 1rem;
+  text-align: left;
+}
+
+.tickerListEmpty {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  padding: 0.7rem 1rem;
+  margin: 0;
+}

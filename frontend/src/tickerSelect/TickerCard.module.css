@@ -38,3 +38,18 @@
   color: var(--text-dim);
   font-size: 0.72rem;
 }
+
+.tickerCardFallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 10rem;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
