@@ -1,0 +1,15 @@
+.card {
+  min-width: 100%;
+}
+
+.pills {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.error {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--negative);
+  margin: 0;
+}

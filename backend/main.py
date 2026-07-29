@@ -7,7 +7,7 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
-from Signals import hurst, portfolio, tail_risk, vrp
+from Signals import canslim, hurst, portfolio, tail_risk, vrp
 from TechnicalAnalysis import (
     calculateAD,
     calculateEma,
@@ -15,6 +15,7 @@ from TechnicalAnalysis import (
     calculateOBV,
     calculateRSI,
     callClosingPrices,
+    tickerDetails,
 )
 
 app = Flask(__name__)
@@ -366,12 +367,123 @@ class TickerDashboard(Resource):
         return results
 
 
+def _universe_one_year_returns(universe: list[str]) -> tuple[dict[str, float], dict[str, str]]:
+    """Best-effort 1-year returns for a universe; failures are collected,
+    not raised, so one bad ticker doesn't block the rest."""
+    returns: dict[str, float] = {}
+    failed: dict[str, str] = {}
+    for ticker in universe:
+        try:
+            closes = callClosingPrices.get_price_data(ticker)['close'].tolist()
+            returns[ticker] = canslim.one_year_return(closes)
+        except Exception as error:
+            failed[ticker] = str(error)
+    return returns, failed
+
+
+class CanslimScreen(Resource):
+    """
+    Screens the configured universe against the CANSLIM-inspired criteria
+    that are actually computable from free data (N, S, L, M). C, A, and I
+    are reported per-ticker as "unavailable" -- see Signals/canslim.py.
+    """
+
+    def get(self):
+        try:
+            universe = _configured_universe()
+            spy_closes = callClosingPrices.get_price_data('SPY')['close'].tolist()
+            one_year_returns, return_failures = _universe_one_year_returns(universe)
+
+            results = []
+            ticker_failures: dict[str, str] = dict(return_failures)
+            for ticker in universe:
+                if ticker not in one_year_returns:
+                    continue
+                try:
+                    price_df = callClosingPrices.get_price_data(ticker)
+                    closes = price_df['close'].tolist()
+                    volumes = price_df['volume'].tolist()
+                    try:
+                        shares_outstanding = tickerDetails.get_ticker_details(
+                            ticker
+                        )['shares_outstanding']
+                    except Exception:
+                        shares_outstanding = None
+
+                    results.append(canslim.screen_ticker(
+                        ticker, closes, volumes, shares_outstanding,
+                        one_year_returns, spy_closes,
+                    ))
+                except Exception as error:
+                    ticker_failures[ticker] = str(error)
+
+            results.sort(
+                key=lambda r: (
+                    r['criteria']['L']['rs_rating']
+                    if r['criteria'].get('L') else -1
+                ),
+                reverse=True,
+            )
+        except ValueError as error:
+            return {'error': str(error)}, 400
+        except Exception as error:
+            return {'error': str(error)}, 502
+
+        payload = {'universe': universe, 'results': results}
+        if ticker_failures:
+            payload['universeErrors'] = ticker_failures
+        return payload
+
+
+class CanslimTicker(Resource):
+    """Same screening logic as CanslimScreen, for a single ticker (which
+    may or may not be in the configured universe)."""
+
+    def get(self, ticker: str):
+        symbol = ticker.upper().strip()
+        if not symbol:
+            return {'error': 'ticker cannot be empty'}, 400
+
+        try:
+            universe = _configured_universe()
+            spy_closes = callClosingPrices.get_price_data('SPY')['close'].tolist()
+            one_year_returns, _ = _universe_one_year_returns(universe)
+
+            if symbol not in one_year_returns:
+                try:
+                    closes = callClosingPrices.get_price_data(symbol)['close'].tolist()
+                    one_year_returns[symbol] = canslim.one_year_return(closes)
+                except Exception:
+                    pass  # relative_strength_rating will report this as unavailable
+
+            price_df = callClosingPrices.get_price_data(symbol)
+            closes = price_df['close'].tolist()
+            volumes = price_df['volume'].tolist()
+            try:
+                shares_outstanding = tickerDetails.get_ticker_details(symbol)[
+                    'shares_outstanding'
+                ]
+            except Exception:
+                shares_outstanding = None
+
+            result = canslim.screen_ticker(
+                symbol, closes, volumes, shares_outstanding,
+                one_year_returns, spy_closes,
+            )
+        except Exception as error:
+            return {'ticker': symbol, 'error': str(error)}, 502
+
+        return result
+
+
 api.add_resource(HelloWorld, '/tickers/<string:ticker>')
 api.add_resource(EMA, '/ema/<string:ema>')
 api.add_resource(TailRisk, '/signals/tail-risk/<string:ticker>')
 api.add_resource(HurstSignal, '/signals/hurst/<string:ticker>')
 api.add_resource(PortfolioLegs, '/portfolio/legs')
 api.add_resource(TickerDashboard, '/dashboard/<string:ticker>')
+api.add_resource(CanslimScreen, '/canslim/screen')
+api.add_resource(CanslimTicker, '/canslim/<string:ticker>')
 
 if __name__ == '__main__':
     app.run(

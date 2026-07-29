@@ -2,28 +2,44 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { TickerSelect } from "./tickerSelect/TickerSelect";
 import { TopBar } from "./TopBar";
-import { fetchPortfolioLegs, isPortfolioLegs, PortfolioLegs } from "./lib/api";
+import {
+  CanslimResult,
+  fetchCanslimScreen,
+  fetchPortfolioLegs,
+  isCanslimScreenResponse,
+  isPortfolioLegs,
+  PortfolioLegs,
+} from "./lib/api";
 import { MarketTimingCard } from "./signals/MarketTimingCard";
 import { LongShortTable } from "./signals/LongShortTable";
 import { OptionOverlayCard } from "./signals/OptionOverlayCard";
 import { UniverseList } from "./signals/UniverseList";
 import { useTickerDashboard } from "./hooks/useTickerDashboard";
+import { useCanslimTicker } from "./hooks/useCanslimTicker";
 import { ChartCard } from "./charts/ChartCard";
 import { IndicatorChart } from "./charts/IndicatorChart";
 import { MacdChart } from "./charts/MacdChart";
 import { VolumeChart } from "./charts/VolumeChart";
 import { StatBadge, BadgeTone } from "./components/StatBadge";
+import { CanslimScreenerTable } from "./canslim/CanslimScreenerTable";
+import { CanslimTickerCard } from "./canslim/CanslimTickerCard";
+import { tickers } from "./tickers";
 import { alignRight, formatNumber } from "./lib/format";
 
 function App() {
   const [portfolioLegs, setPortfolioLegs] = useState<PortfolioLegs | null>(null);
   const [portfolioError, setPortfolioError] = useState(false);
+  const [canslimResults, setCanslimResults] = useState<CanslimResult[] | null>(null);
+  const [canslimError, setCanslimError] = useState(false);
   const [activeTicker, setActiveTicker] = useState<{ name: string; ticker: string }>({
     name: "Apple Inc.",
     ticker: "AAPL",
   });
 
   const { data: dashboard, error: dashboardError, loading } = useTickerDashboard(
+    activeTicker.ticker,
+  );
+  const { data: canslimTicker, error: canslimTickerError } = useCanslimTicker(
     activeTicker.ticker,
   );
 
@@ -41,6 +57,26 @@ function App() {
       })
       .catch(() => {
         if (active) setPortfolioError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchCanslimScreen()
+      .then((response) => {
+        if (!active) return;
+        if (isCanslimScreenResponse(response)) {
+          setCanslimResults(response.results);
+          setCanslimError(false);
+        } else {
+          setCanslimError(true);
+        }
+      })
+      .catch(() => {
+        if (active) setCanslimError(true);
       });
     return () => {
       active = false;
@@ -121,6 +157,16 @@ function App() {
             )}
             {portfolioError && <p className="signalError">Portfolio signals are unavailable.</p>}
 
+            {canslimResults && (
+              <CanslimScreenerTable
+                results={canslimResults}
+                onSelectTicker={(ticker) =>
+                  setActiveTicker({ ticker, name: tickers[ticker]?.companyName ?? ticker })
+                }
+              />
+            )}
+            {canslimError && <p className="signalError">CANSLIM screener is unavailable.</p>}
+
             {loading && !dashboard && <p className="loadingText">Loading {activeTicker.ticker}…</p>}
             {dashboardError && <p className="signalError">{dashboardError}</p>}
 
@@ -138,6 +184,10 @@ function App() {
                       height={220}
                     />
                   </ChartCard>
+                </div>
+
+                <div className="chartGrid chartGridWide">
+                  <CanslimTickerCard result={canslimTicker} error={canslimTickerError ?? undefined} />
                 </div>
 
                 <div className="statRow">

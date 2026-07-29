@@ -1,0 +1,61 @@
+.card {
+  min-width: 100%;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.table th,
+.table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tickerCol {
+  text-align: left;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.rsCol {
+  color: var(--text-dim);
+}
+
+.countCol {
+  color: var(--text-dim);
+}
+
+.table tbody tr {
+  cursor: pointer;
+}
+
+.table tbody tr:hover {
+  background: var(--panel-raised);
+}
+
+.qualifies {
+  background: rgba(79, 178, 134, 0.05);
+}
